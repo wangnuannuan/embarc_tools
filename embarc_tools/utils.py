@@ -6,6 +6,7 @@ import io
 import sys
 import operator
 import subprocess
+import threading
 import errno
 import os
 from os import listdir, remove, makedirs
@@ -310,37 +311,56 @@ def processcall(command, **kwargs):
     return returncode
 
 
-def pquery(command, output_callback=None, stdin=None, **kwargs):
-    proc = None
-    try:
-        proc = subprocess.Popen(command, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
-    except OSError as e:
-        if e.args[0] == errno.ENOENT:
-            print(
-                "Could not execute \"%s\" in \"%s\".\n"
-                "You can verify that it's installed and accessible from your current path by executing \"%s\".\n" % (' '.join(command), getcwd(), command[0]), e.args[0])
-        else:
-            raise e
+# def pquery(command, output_callback=None, stdin=None, **kwargs):
+#     proc = None
+#     try:
+#         proc = subprocess.Popen(command, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
+#     except OSError as e:
+#         if e.args[0] == errno.ENOENT:
+#             print(
+#                 "Could not execute \"%s\" in \"%s\".\n"
+#                 "You can verify that it's installed and accessible from your current path by executing \"%s\".\n" % (' '.join(command), getcwd(), command[0]), e.args[0])
+#         else:
+#             raise e
 
-    if output_callback:
-        line = ""
-        while 1:
-            s = str(proc.stderr.read(1))
-            line += s
-            if s == '\r' or s == '\n':
-                output_callback(line, s)
-                line = ""
+#     if output_callback:
+#         line = ""
+#         while 1:
+#             s = str(proc.stderr.read(1))
+#             line += s
+#             if s == '\r' or s == '\n':
+#                 output_callback(line, s)
+#                 line = ""
 
-            if proc.returncode is None:
-                proc.poll()
-            else:
-                break
+#             if proc.returncode is None:
+#                 proc.poll()
+#             else:
+#                 break
 
-    stdout, _ = proc.communicate(stdin)
-    if proc.returncode != 0:
-        print("[embARC] Run command {} return code:{} ".format(' '.join(command), proc.returncode))
+#     stdout, _ = proc.communicate(stdin)
+#     if proc.returncode != 0:
+#         print("[embARC] Run command {} return code:{} ".format(' '.join(command), proc.returncode))
 
-    return stdout.decode("utf-8")
+#     return stdout.decode("utf-8")
+
+
+def pquery(command, output_callback=None, timeout=1, **kwargs):
+    terminated = False
+    with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs) as proc:
+        t = threading.Thread(target=output_callback, args=(proc, ), daemon=True)
+        t.start()
+        t.join(timeout)
+        if t.is_alive():
+            proc.terminate()
+            terminated = True
+            t.join()
+        proc.wait()
+        returncode = proc.returncode
+        subprocess.call(["stty", "sane"])
+        if not terminated and returncode != 0:
+            print("[embARC] Run command {} return code:{} ".format(' '.join(command), proc.returncode))
+            return False
+    return True
 
 
 def pqueryOutputinline(command, console=False, **kwargs):

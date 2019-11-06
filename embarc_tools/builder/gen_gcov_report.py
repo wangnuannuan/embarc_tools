@@ -1,17 +1,24 @@
+#!/usr/bin/python
 from __future__ import print_function, unicode_literals
 import os
-import io
-import random
-import time
+import re
 from distutils.spawn import find_executable
 from bs4 import BeautifulSoup
 import serial
 import subprocess
 import threading
-import psutil
 from dateutil.parser import parse
-from ..utils import delete_dir_files, processcall, getcwd, cd, mkdir, remove
-from ..exporter import Exporter
+import argparse
+from embarc_tools.utils import delete_dir_files, processcall, getcwd, cd, mkdir
+from embarc_tools.exporter import Exporter
+
+
+def nt_posix_path(path):
+    path = os.path.abspath(path)
+    if os.path.exists(path):
+        return path.replace("\\", "/")
+    else:
+        print("{} doesn't exists".format(path))
 
 
 def generate_gcov_report(root, app_path, obj_path, output):
@@ -120,12 +127,13 @@ def get_gcov_data(report):
                 href = tr.findAll('a', href=True)[0]
                 html_name = href['href']
                 href['href'] = "#" + html_name
-                detail.append(str(tr).replace(u'\xa0', u''))  # Some code is not ASCII, (e.g., options/gmsl/__gmsl)
+                detail.append(str(tr).replace(u'\xa0', u''))
                 with open(os.path.join("coverage", html_name), "r") as key_f:
                     detail_content = key_f.read()
                     detail_bf = BeautifulSoup(detail_content, "html.parser")
                     cov_detail = detail_bf.findAll('table', attrs={'cellspacing': '0', 'cellpadding': '1'})[0]
                     if cov_detail:
+                        # Some characters in gmsl cannot be parsed
                         detail_report_files.append(
                             {"name": html_name, "detail": str(cov_detail).replace(u'\xa0', u'')}
                         )
@@ -201,15 +209,17 @@ def generate_sum_report(root, app_path, obj_path):
         delete_dir_files("coverage", dir=True)
 
 
-def monitor_serial(ser, stdout):
-    while 1:
-        s = str(stdout.readline().decode("utf-8"))
-        print(s, end="")
-        if "Breakpoint" in s:
+def monitor_serial(ser, pro, output_file):
+    for line in iter(proc.stdout.readline, b''):
+        line_str = line.decode('utf-8')
+        print(line_str, end="")
+        if ".elf" in line_str:
             break
     print("Start monitor serial ...")
+    log_out_fp = open(output_file, "wt")
+    flag = 0
+    serial_line = None
     while ser.isOpen():
-        serial_line = None
         try:
             serial_line = ser.readline()
         except TypeError:
@@ -217,140 +227,217 @@ def monitor_serial(ser, stdout):
         except serial.serialutil.SerialException:
             ser.close()
             break
-        if serial_line:
-            sl = serial_line.decode('utf-8', 'ignore')
+        sl = serial_line.decode('utf-8', 'ignore')
+        if sl and flag:
+            log_out_fp.write(sl)
+            log_out_fp.flush()
+        else:
             print(sl, end="")
-            if "GCOV_COVERAGE_DUMP_END" in sl:
-                ser.close()
-                break
-
-
-def cmd_output_callback(proc, command):
-    while True:
-        s = str(proc.stdout.readline().decode("utf-8"))
-        print(s, end="")
-        if "nsimdrv -gdb" in s:
+        if "embARC unit test end" in sl:
+            flag = 1
+            print("[embARC] Dump coverage data to file ...")
+        if "GCOV_COVERAGE_DUMP_END" in sl:
+            ser.close()
             break
-    time.sleep(5)
-    file_num = random.randint(100000, 200000)
-    file_name = "gdb_message" + str(file_num) + ".log"
-    with io.open(file_name, "wb") as writer, io.open(file_name, "rb", 1) as reader:
-        gdb_proc = subprocess.Popen(
-            command, stdout=writer, stderr=writer, shell=True, bufsize=1
-        )
-        end = ""
-        print("[embARC] Start gdb ...")
-        while True:
-            decodeline = reader.read().decode()
-            if decodeline == str() and gdb_proc.poll() is not None:
+
+
+def output_reader(proc, output_file):
+    log_out_fp = open(output_file, "wt")
+    flag = 0
+    for line in iter(proc.stdout.readline, b''):
+        line_str = line.decode('utf-8')
+        if flag and line_str:
+            log_out_fp.write(line_str)
+            log_out_fp.flush()
+        else:
+            print(line_str, end="")
+        if "embARC unit test end" in line_str:
+            flag = 1
+            print("[embARC] Dump coverage data to file ...")
+        if "GCOV_COVERAGE_DUMP_END" in line_str:
+            try:
+                proc.wait(timeout=0.1)
+            except subprocess.TimeoutExpired:
+                proc.terminate()
                 break
-            if decodeline != str():
-                print(decodeline, end=end)
-                if "Breakpoint" in decodeline:
-                    break
-        while True:
-            s = str(proc.stdout.readline().decode("utf-8"))
-            print(s, end="")
-            if "GCOV_COVERAGE_DUMP_END" in s:
-                try:
-                    gdb_proc.wait(timeout=0.1)
-                except subprocess.TimeoutExpired:
-                    gdb_proc.terminate()
-                try:
-                    proc.wait(timeout=0.1)
-                except subprocess.TimeoutExpired:
-                    proc.terminate()
+    log_out_fp.close()
+
+
+def retrieve_data(input_file):
+    extracted_coverage_info = {}
+    capture_data = False
+    reached_end = False
+    with open(input_file, 'r') as fp:
+        for line in fp.readlines():
+            if re.search("GCOV_COVERAGE_DUMP_START", line):
+                capture_data = True
+                continue
+            if re.search("GCOV_COVERAGE_DUMP_END", line):
+                reached_end = True
                 break
-    try:
-        for cur_proc in psutil.process_iter():
-            if cur_proc.name().startswith("arc-elf32-gdb"):
-                cur_proc.kill()
-    except Exception as e:
-        print("[embARC] Failed to kill process arc-elf32-gdb {}".format(e))
-    finally:
-        if os.path.exists(file_name):
-            remove(file_name)
+            # Loop until the coverage data is found.
+            if not capture_data:
+                continue
+            if "<" in line:
+                # Remove the leading delimiter "*"
+                file_name = line.split("<")[0][1:]
+                # Remove the trailing new line char
+                hex_dump = line.split("<")[1][:-1]
+                extracted_coverage_info.update({file_name: hex_dump})
+
+    if not reached_end:
+        print("incomplete data captured from %s" % input_file)
+    return extracted_coverage_info
+
+
+def create_gcda_files(extracted_coverage_info):
+    print("[embARC] Generating gcda files")
+    for filename, hexdump_val in extracted_coverage_info.items():
+        # if kobject_hash is given for coverage gcovr fails
+        # hence skipping it problem only in gcovr v4.1
+        if "kobject_hash" in filename:
+            filename = filename[:-4] + "gcno"
+            try:
+                os.remove(filename)
+            except Exception:
+                pass
+            continue
+
+        with open(filename, 'wb') as fp:
+            fp.write(bytes.fromhex(hexdump_val))
 
 
 def run(app_path, buildopts, outdir=None, serial_device=None):
     command = None
+    target_file = os.path.join(app_path, "coverage.log")
     relative_object_directory = "obj_{}_{}/{}_{}".format(
         buildopts["BOARD"],
         buildopts["BD_VER"],
         buildopts["TOOLCHAIN"],
         buildopts["CUR_CORE"]
     )
-    object_directory = os.path.join(app_path, relative_object_directory).replace("\\", "/")
+    object_directory = os.path.join(
+        app_path,
+        relative_object_directory
+    ).replace("\\", "/")
     with cd(app_path):
         if outdir is None:
             outdir = app_path
-        print("[embARC] Generate gdb file ...")
-        generate_gdb_command(buildopts["EMBARC_ROOT"], buildopts["BOARD"], object_directory)
-
-        if os.path.exists("coverage.gdb"):
-            if find_executable("arc-elf32-gdb"):
-                command = ["arc-elf32-gdb"]
-                command.extend([
-                    "-x",
-                    "coverage.gdb"
-                ])
-                if buildopts["BOARD"] == "nsim":
-                    if find_executable("nsimdrv"):
-                        nsim_server_cmd = ["make"]
-                        buildopts_list = [
-                            "%s=%s" % (key, value) for key, value in buildopts.items()
-                        ]
-                        nsim_server_cmd.extend(buildopts_list)
-                        nsim_server_cmd.append("nsim")
-                        print("[embARC] Start nsim server ...")
-                        with subprocess.Popen(
-                            nsim_server_cmd,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                        ) as nsim_server_proc:
-                            t = threading.Thread(
-                                target=cmd_output_callback,
-                                args=(nsim_server_proc, command)
-                            )
-                            t.start()
-                            t.join(1000)
-                            if t.is_alive():
-                                t.join()
-                                nsim_server_proc.terminate()
-                            nsim_server_proc.wait()
-                            nsim_server_proc.returncode
-
-                else:
-                    with subprocess.Popen(
-                        command,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                    ) as proc:
-                        ser = serial.Serial(
-                            serial_device,
-                            baudrate=115200,
-                            parity=serial.PARITY_NONE,
-                            stopbits=serial.STOPBITS_ONE,
-                            bytesize=serial.EIGHTBITS,
-                            timeout=0.5
-                        )
-                        ser.flush()
-                        t = threading.Thread(
-                            target=monitor_serial,
-                            daemon=True,
-                            args=(ser, proc.stdout)
-                        )
-                        t.start()
-                        t.join(1000)
-                        if t.is_alive():
-                            proc.terminate()
-                            t.join()
-                        proc.terminate()
-                        proc.wait()
-                        proc.returncode
-
-                generate_sum_report(
-                    buildopts["EMBARC_ROOT"],
-                    app_path,
-                    object_directory
+        print("[embARC] Start to run ...")
+        command = ["make",
+                   "EMBARC_ROOT=" + buildopts["EMBARC_ROOT"],
+                   "BOARD=" + buildopts["BOARD"],
+                   "BD_VER=" + buildopts["BD_VER"],
+                   "CUR_CORE=" + buildopts["CUR_CORE"],
+                   "TOOLCHAIN=" + buildopts["TOOLCHAIN"],
+                   "EN_COVERAGE=1",
+                   "run"
+                   ]
+        if buildopts["BOARD"] == "nsim":
+            with subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=app_path
+            ) as proc:
+                t = threading.Thread(
+                    target=output_reader,
+                    args=(proc, target_file)
                 )
+                t.start()
+                t.join(1000)
+                if t.is_alive():
+                    proc.terminate()
+                    t.join()
+                proc.terminate()
+                proc.wait()
+                proc.returncode
+        else:
+            with subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            ) as proc:
+                ser = serial.Serial(
+                    serial_device,
+                    baudrate=115200,
+                    parity=serial.PARITY_NONE,
+                    stopbits=serial.STOPBITS_ONE,
+                    bytesize=serial.EIGHTBITS,
+                    timeout=0.5
+                )
+                ser.flush()
+                t = threading.Thread(
+                    target=monitor_serial,
+                    daemon=True,
+                    args=(ser, proc, target_file)
+                )
+                t.start()
+                t.join(1000)
+                if t.is_alive():
+                    proc.terminate()
+                    t.join()
+                proc.terminate()
+                proc.wait()
+                proc.returncode
+        extracted_coverage_info = retrieve_data(target_file)
+        create_gcda_files(extracted_coverage_info)
+        generate_sum_report(
+            buildopts["EMBARC_ROOT"],
+            app_path,
+            object_directory
+        )
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Before run this script, you must build the project.\n \
+            Please set OLEVEL=O0.print.\n \
+            This function will be added to embARC CLI later",
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        "--embarc-root",
+        required=True, help="Specify embARC_osp directory")
+    parser.add_argument(
+        "--app-path", default=getcwd(),
+        required=True, help="Specify the root path of project")
+    parser.add_argument(
+        "-O", "--outdir", default=getcwd(),
+        help="Output directory for makefile, source code and elf.", metavar='')
+    parser.add_argument(
+        "-b", "--board", help="choose board", default="nsim", metavar='')
+    parser.add_argument(
+        "--bd-ver", help="choose board version", metavar='')
+    parser.add_argument(
+        "--cur-core", help="choose core", metavar='')
+    parser.add_argument(
+        "--toolchain",
+        choices=["mw", "gnu"], help="choose toolchain", metavar='')
+    parser.add_argument(
+        "--device-serial",
+        help="Serial device for accessing the board (e.g., /dev/ttyACM0)",
+        metavar='')
+    return parser.parse_args()
+
+
+def main():
+    global options
+    options = parse_arguments()
+    options.app_path = nt_posix_path(
+        options.app_path
+    )
+    options.embarc_root = nt_posix_path(
+        options.embarc_root
+    )
+    buildopts = dict()
+    buildopts["BOARD"] = options.board
+    buildopts["BD_VER"] = options.bd_ver
+    buildopts["CUR_CORE"] = options.cur_core
+    buildopts["TOOLCHAIN"] = options.toolchain
+    buildopts["OLEVEL"] = "O0"
+    buildopts["EMBARC_ROOT"] = options.embarc_root
+    run(options.app_path, buildopts, options.outdir, options.device_serial)
+
+
+if __name__ == "__main__":
+    main()
