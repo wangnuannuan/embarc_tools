@@ -34,31 +34,28 @@ class Gnu(ARCtoolchain):
         exe = find_executable(self.executable_name)
         if exe:
             self.path = os.path.split(exe)[0]
-            self.version = self.check_version()
+            self.check_version()
 
-    @staticmethod
-    def check_version():
+    def __output_reader(self, proc):
+        for line in iter(proc.stdout.readline, b''):
+            line_str = line.decode('utf-8')
+            version = re.search(r"[0-9]*\.[0-9]*", exe).group(0)
+            if version:
+                self.version = version
+
+    def check_version(self):
         '''run command "arc-elf32-gcc--version" and return current gnu version'''
         cmd = ["arc-elf32-gcc", "--version"]
         try:
+            returnstatus = pquery(cmd, output_callback=self._output_reader)
             exe = pquery(cmd)
-            if exe is None:
+            if not returnstatus:
                 msg = "can not execute {}".format(cmd[0])
                 print_string(msg, level="warning")
-                return None
-            version = re.search(r"[0-9]*\.[0-9]*", exe).group(0)
-            if version:
-                return version
         except ProcessException:
             return None
         except AttributeError:
             return None
-
-    def _set_version(self):
-        '''get current gnu version and set the self.version'''
-        version = self.check_version()
-        if version:
-            self.version = version
 
     def download(self, version=None, path=None):
         '''

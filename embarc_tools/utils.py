@@ -311,39 +311,6 @@ def processcall(command, **kwargs):
     return returncode
 
 
-# def pquery(command, output_callback=None, stdin=None, **kwargs):
-#     proc = None
-#     try:
-#         proc = subprocess.Popen(command, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
-#     except OSError as e:
-#         if e.args[0] == errno.ENOENT:
-#             print(
-#                 "Could not execute \"%s\" in \"%s\".\n"
-#                 "You can verify that it's installed and accessible from your current path by executing \"%s\".\n" % (' '.join(command), getcwd(), command[0]), e.args[0])
-#         else:
-#             raise e
-
-#     if output_callback:
-#         line = ""
-#         while 1:
-#             s = str(proc.stderr.read(1))
-#             line += s
-#             if s == '\r' or s == '\n':
-#                 output_callback(line, s)
-#                 line = ""
-
-#             if proc.returncode is None:
-#                 proc.poll()
-#             else:
-#                 break
-
-#     stdout, _ = proc.communicate(stdin)
-#     if proc.returncode != 0:
-#         print("[embARC] Run command {} return code:{} ".format(' '.join(command), proc.returncode))
-
-#     return stdout.decode("utf-8")
-
-
 def pquery(command, output_callback=None, timeout=1, **kwargs):
     terminated = False
     with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs) as proc:
@@ -361,82 +328,6 @@ def pquery(command, output_callback=None, timeout=1, **kwargs):
             print("[embARC] Run command {} return code:{} ".format(' '.join(command), proc.returncode))
             return False
     return True
-
-
-def pqueryOutputinline(command, console=False, **kwargs):
-    proc = None
-    build_out = list()
-    file_num = random.randint(100000, 200000)
-    file_name = "message" + str(file_num) + ".log"
-    try:
-        with io.open(file_name, "wb") as writer, io.open(file_name, "rb", 1) as reader:
-            proc = subprocess.Popen(
-                command, stdout=writer, stderr=writer, shell=True, bufsize=1, **kwargs
-            )
-            end = ""
-            # if PYTHON_VERSION.startswith("3"):
-            #    end = "\n"
-            try:
-                while True:
-                    decodeline = reader.read().decode()
-                    if decodeline == str() and proc.poll() is not None:
-                        break
-                    if decodeline != str():
-                        build_out.append(decodeline)
-                        if console:
-                            print(decodeline, end=end)
-                            time.sleep(0.1)
-            except (KeyboardInterrupt):
-                print("[embARC] Terminate batch job")
-                sys.exit(1)
-
-    except OSError as e:
-        if e.args[0] == errno.ENOENT:
-            print(
-                "Could not execute \"%s\".\n"
-                "Please verify that it's installed and accessible from your current path by \
-                executing \"%s\".\n" % (command[0], command[0]), e.args[0])
-        else:
-            raise e
-    except Exception as e:
-        print(e)
-    proc.wait()
-    if os.path.exists(file_name):
-        remove(file_name)
-    if proc.stdout:
-        proc.stdout.close()
-    if proc.stderr:
-        proc.stderr.close()
-    del proc
-    return build_out
-
-
-def pqueryTemporaryFile(command):
-    current_command = None
-    if isinstance(command, list):
-        current_command = " ".join(command)
-    else:
-        current_command = command
-    print("[embARC] Run command {}".format(current_command))
-    proc = None
-    returncode = 0
-    rt_list = None
-    file_num = random.randint(100000, 200000)
-    file_name = "message" + str(file_num) + ".log"
-    try:
-        log_file = open(file_name, "w")
-        proc = subprocess.Popen(current_command, stdout=log_file, stderr=None, shell=True)
-        log_file.close()
-        returncode = proc.wait()
-
-    except Exception as e:
-        print("[embARC] Run command {} failed : {}".format(current_command, e))
-    if os.path.exists(file_name):
-        with open(file_name) as f:
-            rt_list = f.read().splitlines()
-        remove(file_name)
-    del proc
-    return returncode, rt_list
 
 
 def import_submodules(package, recursive=True):

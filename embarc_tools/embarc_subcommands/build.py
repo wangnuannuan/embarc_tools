@@ -74,21 +74,7 @@ def run(args, remainder=None):
         sys.exit(0)
     if args.target:
         information = None
-        if args.target == "elf":
-            information = builder.build_elf(app_path, parallel=parallel, pre_clean=False, post_clean=False)
-        elif args.target == "bin":
-            information = builder.build_bin(app_path, parallel=parallel, pre_clean=False, post_clean=False)
-        elif args.target == "hex":
-            information = builder.build_hex(app_path, parallel=parallel, pre_clean=False, post_clean=False)
-        elif args.target == "clean":
-            information = builder.clean(app_path, parallel=parallel)
-        elif args.target == "distclean":
-            information = builder.distclean(app_path, parallel=parallel)
-        elif args.target == "boardclean":
-            information = builder.boardclean(app_path, parallel=parallel)
-        elif args.target == "info":
-            information = builder.get_build_info(app_path, parallel=parallel)
-        elif args.target == "size":
+        if args.target == "size":
             information = builder.get_build_size(app_path, parallel=parallel)
         elif args.target:
             information = builder.build_target(app_path, target=args.target, parallel=parallel, coverity=False)

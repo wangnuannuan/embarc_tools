@@ -191,14 +191,14 @@ class embARC_Builder(object):
 
         return build_status
 
-    def get_build_cmd(self, app, target=None, parallel=8, silent=False):
+    def check_build_cmd(self, app, target=None, parallel=8, silent=False):
         build_status = dict()
         build_cmd = ["make"]
         if parallel:
             build_cmd.extend(["-j", str(parallel)])
-        if target != "info":
-            with cd(app):
-                self.get_makefile_config(self.get_build_template())
+
+        with cd(app):
+            self.get_makefile_config(self.get_build_template())
         build_cmd.extend(self.make_options)
         if silent:
             if "SILENT=1" not in build_cmd:
@@ -223,12 +223,12 @@ class embARC_Builder(object):
         if not build_status['result']:
             return build_status
         self.apppath = app
-        # Check and create output directory
+
         if (self.outdir is not None) and (not os.path.isdir(self.outdir)):
             print_string("Create application output directory: " + self.outdir)
             os.makedirs(self.outdir)
 
-        current_build_status = self.get_build_cmd(app_realpath, target, parallel, silent)
+        current_build_status = self.check_build_cmd(app_realpath, target, parallel, silent)
         build_status.update(current_build_status)
         build_cmd = build_status.get('build_cmd', None)
 
@@ -275,63 +275,6 @@ class embARC_Builder(object):
         print_string("Completed in: ({})s  ".format(build_status['time_cost']))
         return build_status
 
-    def build_elf(self, app, parallel=False, pre_clean=False, post_clean=False, silent=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
-        build_status = self.build_target(app, parallel=parallel, target=str('all'), silent=silent)
-        if not build_status['result']:
-            return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
-
-        return build_status
-
-    def build_bin(self, app, parallel=False, pre_clean=False, post_clean=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
-        build_status = self.build_target(app, parallel=parallel, target=str('bin'))
-        if not build_status['result']:
-            return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
-
-        return build_status
-
-    def build_hex(self, app, parallel=False, pre_clean=False, post_clean=False):
-        # Clean Application before build if requested
-        if pre_clean:
-            build_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not build_status['result']:
-                return build_status
-
-        # Build Application
-        build_status = self.build_target(app, parallel=parallel, target=str('hex'))
-        if not build_status['result']:
-            return build_status
-        # Clean Application after build if requested
-        if post_clean:
-            clean_status = self.build_target(app, parallel=parallel, target=str('clean'))
-            if not clean_status['result']:
-                return clean_status
-
-        return build_status
-
     def get_build_size(self, app, parallel=False, silent=False):
         # Build Application
         build_status = self.build_target(app, parallel=parallel, target=str('all'))
@@ -347,18 +290,6 @@ class embARC_Builder(object):
             table = PrettyTable(section_names)
             table.add_row(section_size)
             print(table.get_string())
-        return build_status
-
-    def clean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('clean'), parallel=parallel)
-        return build_status
-
-    def distclean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('distclean'), parallel=parallel)
-        return build_status
-
-    def boardclean(self, app, parallel=False):
-        build_status = self.build_target(app, target=str('boardclean'), parallel=parallel)
         return build_status
 
     def get_makefile_config(self, build_template=None):

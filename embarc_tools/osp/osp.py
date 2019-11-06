@@ -1,5 +1,6 @@
 from __future__ import print_function, division, unicode_literals
 import os
+import re
 import sys
 from ..notify import (print_string, colorstring_to_escapecode)
 from ..settings import MAKEFILENAMES, get_input, OSP_DIRS
@@ -204,84 +205,60 @@ class OSP(object):
         else:
             return False
 
-    def supported_olevels(self, root):
-        app = "example/baremetal/arc_feature/timer_interrupt"
-        app_path = os.path.join(root, app)
+    def supported_olevels(self, root, toolchain):
         result = list()
-        with cd(app_path):
-            cmd_output = pquery(["make", "spopt"])
-            if cmd_output:
-                opt_lines = cmd_output.splitlines()
-                for opt_line in opt_lines:
-                    if opt_line.startswith("SUPPORTED_OLEVELS"):
-                        board_opt_line = opt_line.split(":", 1)[1]
-                        result.extend(board_opt_line.split())
+        toolchain_mk = "options/toolchain/toolchain_{}.mk".format(toolchain)
+        toolchain = os.path.join(root, toolchain_mk)
+        if os.path.exists(toolchain):
+            with open(toolchain, "r") as fp:
+                for line in fp.readlines():
+                    if line.startswith("SUPPORTED_OLEVELS"):
+                        olevel_opts = line.split("=", 1)[1]
+                        result.extend(olevel_opts.split())
                         break
         return result
 
     def supported_toolchains(self, root):
-        app = "example/baremetal/arc_feature/timer_interrupt"
-        app_path = os.path.join(root, app)
         result = list()
-        with cd(app_path):
-            cmd_output = pquery(["make", "spopt"])
-            if cmd_output:
-                opt_lines = cmd_output.splitlines()
-                for opt_line in opt_lines:
-                    if opt_line.startswith("SUPPORTED_TOOLCHAINS"):
-                        board_opt_line = opt_line.split(":", 1)[1]
-                        result.extend(board_opt_line.split())
-                        break
+        toolchain_folder = "options/toolchain"
+        toolchain = os.path.join(root, toolchain_folder)
+        if os.path.exists(toolchain):
+            for file in os.listdir(toolchain):
+                version = re.match(r'toolchain_(.*?).mk.*', file, re.M|re.I)
+                if version:
+                    result.append(version.group(1))
         return result
 
     def supported_jtags(self, root):
-        app = "example/baremetal/arc_feature/timer_interrupt"
-        app_path = os.path.join(root, app)
         result = list()
-        with cd(app_path):
-            cmd_output = pquery(["make", "spopt"])
-            if cmd_output:
-                opt_lines = cmd_output.splitlines()
-                for opt_line in opt_lines:
-                    if opt_line.startswith("SUPPORTED_JTAGS"):
-                        board_opt_line = opt_line.split(":", 1)[1]
-                        result.extend(board_opt_line.split())
+        debug_mk = "options/debug.mk"
+        debug = os.path.join(root, debug_mk)
+        if os.path.exists(debug):
+            with open(debug, "r") as fp:
+                for line in fp.readlines():
+                    if line.startswith("SUPPORTED_JTAGS"):
+                        olevel_opts = line.split("=", 1)[1]
+                        result.extend(olevel_opts.split())
                         break
         return result
 
     def supported_boards(self, root):
-        app = "example/baremetal/arc_feature/timer_interrupt"
-        app_path = os.path.join(root, app)
         result = list()
-
-        with cd(app_path):
-            cmd_output = pquery(["make", "spopt"])
-            if cmd_output:
-                opt_lines = cmd_output.splitlines()
-                for opt_line in opt_lines:
-                    if opt_line.startswith("SUPPORTED_BOARDS"):
-                        board_opt_line = opt_line.split(":", 1)[1]
-                        result.extend(board_opt_line.split())
-                        break
+        boards_root = os.path.join(root, "board")
+        for _, dirs, _ in os.walk(boards_root):
+            result.extend(dirs)
+            break
         return result
 
     def supported_bd_versions(self, root, board, bd_version=None):
-        app = "example/baremetal/arc_feature/timer_interrupt"
-        app_path = os.path.join(root, app)
         result = list()
-        with cd(app_path):
-            cmd = ["make"]
-            cmd.append("BOARD=%s" % (board))
-            cmd.append("spopt")
-            cmd_output = pquery(cmd)
-            if cmd_output:
-                opt_lines = cmd_output.splitlines()
-                for opt_line in opt_lines:
-                    if opt_line.startswith("SUPPORTED_BD_VERS"):
-                        board_opt_line = opt_line.split(":", 1)[1]
-                        result.extend(board_opt_line.split())
-                        if bd_version and bd_version in result:
-                            result = [bd_version]
+        board_mk = os.path.join(root, board, board + ".mk")
+        if os.path.exists(board_mk):
+            with open(board_mk, "r") as fp:
+                for line in fp.readlines():
+                    if line.startswith("SUPPORTED_BD_VERS"):
+                        olevel_opts = line.split("=", 1)[1]
+                        result.extend(olevel_opts.split())
                         break
         return result
 
