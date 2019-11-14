@@ -6,7 +6,7 @@ import collections
 from prettytable import PrettyTable
 from elftools.elf.elffile import ELFFile
 from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
-from ..utils import mkdir, getcwd, delete_dir_files, cd, generate_json, pquery, pqueryOutputinline, pqueryTemporaryFile
+from ..utils import mkdir, getcwd, delete_dir_files, cd, generate_json, pquery, pqueryTemporaryFile
 from ..notify import (print_string, print_table)
 from ..osp import osp
 from ..builder import secureshield
@@ -316,29 +316,27 @@ class embARC_Builder(object):
         self.buildopts["EMBARC_ROOT"] = osp_root
         build_template["EMBARC_ROOT"] = osp_root
 
-        if not all(build_template.values()):
-            try:
-                returncode, cmd_output = pqueryTemporaryFile(["make", "EMBARC_ROOT=" + str(osp_root), "info"])
-                default_build_option = None
-                if not returncode and cmd_output:
-                    for line in cmd_output:
-                        if line.startswith("BUILD_OPTION"):
-                            default_build_option = str(line.split(":", 1)[1]).split()
-                            break
-                        else:
-                            pass
-                    default_build_option_dict, _ = get_config(default_build_option)
-                    for key, value in build_template.items():
-                        if not value:
-                            build_template[key] = default_build_option_dict[key]
-                    self.buildopts.update(build_template)
-            except Exception as e:
-                print_string("Error: {}".format(e))
-                sys.exit(1)
+        if not build_template["BOARD"]:
+            build_template["BOARD"] = "emsk"
+
+        if not build_template["BD_VER"]:
+            board_mk = os.path.join(osp_root, build_template["BOARD"], build_template["BOARD"] + ".mk")
+            if os.path.exists(board_mk):
+                        with open(board_mk, "r") as fp:
+                            for line in fp.readlines():
+                                if line.startswith("BD_VER ?"):
+                                    build_template["BD_VER"] = line.split("=", 1)[1]
+                                    break
+        if not build_template["CUR_CORE"]:
+            build_template["CUR_CORE"] = ospclass.supported_cores(
+                osp_root,
+                build_template["BOARD"],
+                build_template["BD_VER"]
+            )
+        self.buildopts.update(build_template)
 
         generate_json(self.buildopts, self.config_file)
         current_build_list = ["%s=%s" % (key, value) for key, value in self.buildopts.items()]
-        # self.make_options = " ".join(current_build_list) + self.make_options
         self.make_options = current_build_list
         if self.outdir is not None:
             self.make_options.append('OUT_DIR_ROOT=' + str(self.outdir))

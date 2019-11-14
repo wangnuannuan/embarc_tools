@@ -260,27 +260,29 @@ class OSP(object):
                         olevel_opts = line.split("=", 1)[1]
                         result.extend(olevel_opts.split())
                         break
+        if bd_version and bd_version in result:
+            result = [bd_version]
         return result
 
     def supported_cores(self, root, board, bd_version, cur_core=None):
-        app = "example/baremetal/arc_feature/timer_interrupt"
-        app_path = os.path.join(root, app)
         result = list()
-        with cd(app_path):
-            cmd = ["make"]
-            cmd.append("BOARD=%s" % (board))
-            cmd.append("BD_VER=%s" % (bd_version))
-            cmd.append("spopt")
-            cmd_output = pquery(cmd)
-            if cmd_output:
-                opt_lines = cmd_output.splitlines()
-                for opt_line in opt_lines:
-                    if opt_line.startswith("SUPPORTED_CORES"):
-                        board_opt_line = opt_line.split(":", 1)[1]
-                        result.extend(board_opt_line.split())
-                        if cur_core and cur_core in result:
-                            result = [cur_core]
-                        break
+        if board != "emsdp":
+            cores = os.path.join(root, board, "configs", bd_version, "tcf")
+            for file in os.listdir(cores):
+                if file.endswith(".tcf"):
+                    result.append(file)
+        else:
+            cores = os.path.join(root, board, bd_version, "configs")
+            for cur_root, _, files in os.walk(cores):
+                for file in files:
+                    if file == "arc.tcf":
+                        cur_root = cur_root.replace("\\", "/")
+                        cur_core = re.search(r'configs/(.*?)/tool_config', cur_root, re.M|re.I)
+                        if cur_core:
+                            result.append(cur_core.group(1))
+                            break
+        if cur_core and cur_core in result:
+            result = [cur_core]
         return result
 
     def _board_version_config(self, root, board, bd_version=None):
