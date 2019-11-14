@@ -320,19 +320,19 @@ class embARC_Builder(object):
             build_template["BOARD"] = "emsk"
 
         if not build_template["BD_VER"]:
-            board_mk = os.path.join(osp_root, build_template["BOARD"], build_template["BOARD"] + ".mk")
+            board_mk = os.path.join(osp_root, "board", build_template["BOARD"], build_template["BOARD"] + ".mk")
             if os.path.exists(board_mk):
                         with open(board_mk, "r") as fp:
                             for line in fp.readlines():
                                 if line.startswith("BD_VER ?"):
-                                    build_template["BD_VER"] = line.split("=", 1)[1]
+                                    build_template["BD_VER"] = line.split("=", 1)[1].strip()
                                     break
         if not build_template["CUR_CORE"]:
             build_template["CUR_CORE"] = ospclass.supported_cores(
                 osp_root,
                 build_template["BOARD"],
                 build_template["BD_VER"]
-            )
+            )[0]
         self.buildopts.update(build_template)
 
         generate_json(self.buildopts, self.config_file)

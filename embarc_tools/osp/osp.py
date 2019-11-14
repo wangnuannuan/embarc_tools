@@ -309,25 +309,6 @@ class OSP(object):
                 return bd_ver
         return bd_vers
 
-    def get_tcfs(self, root, board, bd_version, cur_core=None):
-        result = []
-        board_version_path_dict = self._board_version_config(root, board, bd_version)
-        board_path = board_version_path_dict.get(bd_version, False)
-        cur_core_file = cur_core + ".tcf" if cur_core else cur_core
-        if board_path and os.path.exists(board_path):
-            for root, _, files in os.walk(board_path, topdown=True):
-                if cur_core_file in files:
-                    result.append(cur_core)
-                    break
-                for file in files:
-                    filename, filesuffix = os.path.splitext(file)
-                    if filesuffix != ".tcf":
-                        continue
-                    else:
-                        result.append(filename)
-
-        return result
-
     def get_tcf(self, root, board, bd_version, cur_core):
         result = None
         board_version_path_dict = self._board_version_config(root, board, bd_version)
