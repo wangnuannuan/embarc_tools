@@ -40,7 +40,8 @@ setup(
         'PrettyTable',
         'Jinja2',
         'beautifulsoup4',
-        'GitPython'
+        'GitPython',
+        'elftools'
     ],
 
     include_package_data = True,
