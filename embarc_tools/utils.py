@@ -311,7 +311,7 @@ def processcall(command, **kwargs):
     return returncode
 
 
-def pquery(command, output_callback=None, timeout=1, **kwargs):
+def pquery(command, output_callback=None, timeout=None, **kwargs):
     terminated = False
     with subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs) as proc:
         t = threading.Thread(target=output_callback, args=(proc, ), daemon=True)

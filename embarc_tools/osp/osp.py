@@ -252,7 +252,7 @@ class OSP(object):
 
     def supported_bd_versions(self, root, board, bd_version=None):
         result = list()
-        board_mk = os.path.join(root, board, board + ".mk")
+        board_mk = os.path.join(root, "board", board, board + ".mk")
         if os.path.exists(board_mk):
             with open(board_mk, "r") as fp:
                 for line in fp.readlines():
@@ -267,12 +267,12 @@ class OSP(object):
     def supported_cores(self, root, board, bd_version, cur_core=None):
         result = list()
         if board != "emsdp":
-            cores = os.path.join(root, board, "configs", bd_version, "tcf")
+            cores = os.path.join(root, "board", board, "configs", bd_version, "tcf")
             for file in os.listdir(cores):
                 if file.endswith(".tcf"):
-                    result.append(file)
+                    result.append(os.path.splitext(file)[1])
         else:
-            cores = os.path.join(root, board, bd_version, "configs")
+            cores = os.path.join(root, "board",board, bd_version, "configs")
             for cur_root, _, files in os.walk(cores):
                 for file in files:
                     if file == "arc.tcf":
