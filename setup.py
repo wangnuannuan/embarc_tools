@@ -41,7 +41,7 @@ setup(
         'Jinja2',
         'beautifulsoup4',
         'GitPython',
-        'elftools'
+        'pyelftools'
     ],
 
     include_package_data = True,
