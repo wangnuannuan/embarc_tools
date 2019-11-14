@@ -7,7 +7,6 @@ from ..settings import MAKEFILENAMES, get_input, OSP_DIRS
 from ..exporter import Exporter
 from ..utils import cd, read_json, generate_json, pquery
 
-
 class OSP(object):
     def __init__(self, osp_file="osp.json"):
         self.path = os.path.join(os.path.expanduser("~"), '.embarc_cli')
@@ -270,9 +269,9 @@ class OSP(object):
             cores = os.path.join(root, "board", board, "configs", bd_version, "tcf")
             for file in os.listdir(cores):
                 if file.endswith(".tcf"):
-                    result.append(os.path.splitext(file)[1])
+                    result.append(os.path.splitext(file)[0])
         else:
-            cores = os.path.join(root, "board",board, bd_version, "configs")
+            cores = os.path.join(root, board, bd_version, "configs")
             for cur_root, _, files in os.walk(cores):
                 for file in files:
                     if file == "arc.tcf":
@@ -308,6 +307,25 @@ class OSP(object):
                 bd_ver = {bd_version: bd_vers[bd_version]}
                 return bd_ver
         return bd_vers
+
+    def get_tcfs(self, root, board, bd_version, cur_core=None):
+        result = []
+        board_version_path_dict = self._board_version_config(root, board, bd_version)
+        board_path = board_version_path_dict.get(bd_version, False)
+        cur_core_file = cur_core + ".tcf" if cur_core else cur_core
+        if board_path and os.path.exists(board_path):
+            for root, _, files in os.walk(board_path, topdown=True):
+                if cur_core_file in files:
+                    result.append(cur_core)
+                    break
+                for file in files:
+                    filename, filesuffix = os.path.splitext(file)
+                    if filesuffix != ".tcf":
+                        continue
+                    else:
+                        result.append(filename)
+
+        return result
 
     def get_tcf(self, root, board, bd_version, cur_core):
         result = None
