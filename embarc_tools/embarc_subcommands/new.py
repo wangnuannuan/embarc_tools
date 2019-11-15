@@ -6,7 +6,7 @@ from ..settings import get_input, SUPPORT_TOOLCHAIN, BUILD_CONFIG_TEMPLATE
 from ..notify import (print_string, print_table)
 from ..exporter import Exporter
 from ..osp import osp
-from ..utils import mkdir, getcwd, generate_json
+from ..utils import mkdir, getcwd, generate_json, popen
 
 help = "Create a new application"
 description = ("Options can be input by command line parameter. \n"
@@ -52,12 +52,19 @@ def run(args, remainder=None):
     config["APPL_DEFINES"] = args.defines
     config["OS_SEL"] = args.os
     config["LIB_SEL"] = args.library
-    print_string("Start to generate makefile and main.c ")
-    exporter = Exporter("application")
-    exporter.gen_file_jinja("makefile.tmpl", config, "makefile", application)
-    exporter.gen_file_jinja("main.c.tmpl", config, "main.c", application)
-    print_string("Finish generate makefile and main.c, and they are in %s" % app_path)
-    # csrc
+    if args.test_case:
+        scripts_dir = os.path.abspath(osppath.get_scripts_dir())
+        popen([sys.executable, os.path.join(scripts_dir, 'testsuit.py')]
+               + (["--config", app_json_path])
+               + ([["--test-suit", args.test_suit]])
+               + ([["--test-case", args.test_case]])
+        )
+    else:
+        print_string("Start to generate makefile and main.c ")
+        exporter = Exporter("application")
+        exporter.gen_file_jinja("makefile.tmpl", config, "makefile", application)
+        exporter.gen_file_jinja("main.c.tmpl", config, "main.c", application)
+        print_string("Finish generate makefile and main.c, and they are in %s" % app_path)
 
 
 def get_osp_root(input_root=None):
@@ -238,4 +245,11 @@ def setup(subparsers):
         '--library', action='store', default="", help='choose library', metavar='')
     subparser.add_argument(
         '--quick', action='store_true', default="", help='create application quickly with default configuration')
+    subparser.add_argument(
+        "--test-suit", default=str(), help="Specify test suit", metavar='')
+    subparser.add_argument(
+        "--test-case",
+        action='append',
+        default=[],
+        help="Directories to search for test cases. (e.g., tests/driver)", metavar='')
     subparser.set_defaults(func=run)
