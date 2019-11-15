@@ -5,7 +5,8 @@ import sys
 from ..notify import (print_string, colorstring_to_escapecode)
 from ..settings import MAKEFILENAMES, get_input, OSP_DIRS
 from ..exporter import Exporter
-from ..utils import cd, read_json, generate_json, pquery
+from ..utils import cd, read_json, generate_json
+
 
 class OSP(object):
     def __init__(self, osp_file="osp.json"):
@@ -223,7 +224,7 @@ class OSP(object):
         toolchain = os.path.join(root, toolchain_folder)
         if os.path.exists(toolchain):
             for file in os.listdir(toolchain):
-                version = re.match(r'toolchain_(.*?).mk.*', file, re.M|re.I)
+                version = re.match(r'toolchain_(.*?).mk.*', file, re.M | re.I)
                 if version:
                     result.append(version.group(1))
         return result
@@ -276,7 +277,7 @@ class OSP(object):
                 for file in files:
                     if file == "arc.tcf":
                         cur_root = cur_root.replace("\\", "/")
-                        cur_core = re.search(r'configs/(.*?)/tool_config', cur_root, re.M|re.I)
+                        cur_core = re.search(r'configs/(.*?)/tool_config', cur_root, re.M | re.I)
                         if cur_core:
                             result.append(cur_core.group(1))
                             break

@@ -5,8 +5,8 @@ import time
 import collections
 from prettytable import PrettyTable
 from elftools.elf.elffile import ELFFile
-from ..settings import BUILD_CONFIG_TEMPLATE, BUILD_OPTION_NAMES, BUILD_INFO_NAMES, BUILD_CFG_NAMES, BUILD_SIZE_SECTION_NAMES, get_config, MAKEFILENAMES
-from ..utils import mkdir, getcwd, delete_dir_files, cd, generate_json, pquery
+from ..settings import BUILD_CONFIG_TEMPLATE, MAKEFILENAMES
+from ..utils import mkdir, delete_dir_files, cd, generate_json, pquery
 from ..notify import (print_string, print_table)
 from ..osp import osp
 from ..builder import secureshield
@@ -104,7 +104,7 @@ class embARC_Builder(object):
             mkdir(self.coverity_data_dir)
         if os.path.exists(self.coverity_html):
             delete_dir_files(self.coverity_html, dir=True)
-    
+
     def _output_reader(self, proc):
         output_file = self.apppath + "/build.log"
         log_out_fp = open(output_file, "wt")
@@ -322,11 +322,11 @@ class embARC_Builder(object):
         if not build_template["BD_VER"]:
             board_mk = os.path.join(osp_root, "board", build_template["BOARD"], build_template["BOARD"] + ".mk")
             if os.path.exists(board_mk):
-                        with open(board_mk, "r") as fp:
-                            for line in fp.readlines():
-                                if line.startswith("BD_VER ?"):
-                                    build_template["BD_VER"] = line.split("=", 1)[1].strip()
-                                    break
+                with open(board_mk, "r") as fp:
+                    for line in fp.readlines():
+                        if line.startswith("BD_VER ?"):
+                            build_template["BD_VER"] = line.split("=", 1)[1].strip()
+                            break
         if not build_template["CUR_CORE"]:
             build_template["CUR_CORE"] = ospclass.supported_cores(
                 osp_root,

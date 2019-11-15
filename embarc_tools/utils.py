@@ -1,8 +1,5 @@
 from __future__ import print_function, unicode_literals
 from functools import reduce
-import random
-import time
-import io
 import sys
 import operator
 import subprocess

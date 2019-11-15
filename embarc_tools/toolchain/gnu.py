@@ -39,16 +39,16 @@ class Gnu(ARCtoolchain):
     def __output_reader(self, proc):
         for line in iter(proc.stdout.readline, b''):
             line_str = line.decode('utf-8')
-            version = re.search(r"[0-9]*\.[0-9]*", exe).group(0)
+            version = re.search(r"[0-9]*\.[0-9]*", line_str).group(0)
             if version:
                 self.version = version
+                break
 
     def check_version(self):
         '''run command "arc-elf32-gcc--version" and return current gnu version'''
         cmd = ["arc-elf32-gcc", "--version"]
         try:
             returnstatus = pquery(cmd, output_callback=self._output_reader)
-            exe = pquery(cmd)
             if not returnstatus:
                 msg = "can not execute {}".format(cmd[0])
                 print_string(msg, level="warning")

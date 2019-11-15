@@ -3,6 +3,7 @@ import argparse
 import os
 import re
 
+
 def retrieve_data(input_file):
     extracted_coverage_info = {}
     capture_data = False
@@ -28,6 +29,7 @@ def retrieve_data(input_file):
     if not reached_end:
         print("incomplete data captured from %s" % input_file)
     return extracted_coverage_info
+
 
 def create_gcda_files(extracted_coverage_info):
     if args.verbose:
@@ -59,7 +61,6 @@ def parse_args():
     parser.add_argument("-v", "--verbose", action="count", default=0,
                         help="Verbose Output")
     args = parser.parse_args()
-
 
 
 def main():
