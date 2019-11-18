@@ -55,10 +55,9 @@ def run(args, remainder=None):
     if args.test_case:
         scripts_dir = os.path.abspath(osppath.get_scripts_dir())
         popen([sys.executable, os.path.join(scripts_dir, 'testsuit.py')]
-               + (["--config", app_json_path])
-               + ([["--test-suit", args.test_suit]])
-               + ([["--test-case", args.test_case]])
-        )
+              + (["--config", app_json_path])
+              + ([["--test-suit", args.test_suit]])
+              + ([["--test-case", args.test_case]]))
     else:
         print_string("Start to generate makefile and main.c ")
         exporter = Exporter("application")
