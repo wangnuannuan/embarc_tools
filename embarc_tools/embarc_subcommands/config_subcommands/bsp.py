@@ -118,7 +118,7 @@ def run(args, remainder=None):
 
 
 def setup(subparsers):
-    subparser = subparsers.add_parser('embarc-root', help=help)
+    subparser = subparsers.add_parser('bsp', help=help)
     subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(
