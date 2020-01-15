@@ -2,16 +2,15 @@ from __future__ import print_function, unicode_literals, unicode_literals
 import os
 import sys
 import collections
-from ..settings import get_input, SUPPORT_TOOLCHAIN, BUILD_CONFIG_TEMPLATE
+from ..settings import get_input, SUPPORT_TOOLCHAIN, BUILD_CONFIG_TEMPLATE, embARC
 from ..notify import (print_string, print_table)
 from ..exporter import Exporter
-from ..osp import osp
 from ..utils import mkdir, getcwd, generate_json, popen
 
 help = "Create a new application"
 description = ("Options can be input by command line parameter. \n"
                "via the --quick, it will get options from global settings.")
-osppath = osp.OSP()
+embarc_obj = embARC()
 
 
 def run(args, remainder=None):
@@ -45,15 +44,12 @@ def run(args, remainder=None):
     app_json_path = os.path.join(app_path, "embarc_app.json")
     mkdir(app_path)
     generate_json(config, app_json_path)
-    config["MIDDLEWARE"] = args.middleware
     config["APPL_CSRC_DIR"] = args.csrc
     config["APPL_ASMSRC_DIR"] = args.asmsrc
     config["APPL_INC_DIR"] = args.include
     config["APPL_DEFINES"] = args.defines
-    config["OS_SEL"] = args.os
-    config["LIB_SEL"] = args.library
     if args.test_case:
-        scripts_dir = os.path.abspath(osppath.get_scripts_dir())
+        scripts_dir = os.path.abspath(embarc_obj.get_scripts_dir())
         popen([sys.executable, os.path.join(scripts_dir, 'testsuit.py')]
               + (["--config", app_json_path])
               + ([["--test-suit", args.test_suit]])
@@ -66,51 +62,51 @@ def run(args, remainder=None):
         print_string("Finish generate makefile and main.c, and they are in %s" % app_path)
 
 
-def get_osp_root(input_root=None):
+def get_embarc_root(input_root=None):
     if not input_root:
-        input_root = osppath.get_global("EMBARC_ROOT")
+        input_root = embarc_obj.get_global("EMBARC_ROOT")
     if not input_root:
-        print_string("Can't get osp root from global settings")
-        current_record = osppath.list_path(show=True, current=None)
-        input_root = get_input("[embARC] Choose osp root path num or set another path as osp root: ")
+        print_string("Can't get embarc root from global settings")
+        current_record = embarc_obj.list_path(show=True, current=None)
+        input_root = get_input("[embARC] Choose embarc root path num or set another path as embarc root: ")
         input_root = input_root.replace("\\", "/")
         global_name = None
         if current_record:
             if input_root in current_record:
                 global_name = input_root
             else:
-                if osppath.is_osp(input_root):
+                if embarc_obj.is_embarc_root(input_root):
                     for name, value in current_record.items():
                         if value.get("directory", False) == input_root:
                             global_name = name
         if not global_name:
-            if osppath.is_osp(input_root):
+            if embarc_obj.is_embarc_root(input_root):
                 name_root = get_input("[embARC] Name this path: ")
                 if name_root:
                     global_name = name_root
                     source_type = "local"
                     url = os.path.abspath(input_root)
-                    msg = "Add this local (%s) to user profile osp.json" % (url)
+                    msg = "Add this local (%s) to user profile embarc.json" % (url)
                     print_string(msg)
-                    osppath.set_path(global_name, source_type, url)
+                    embarc_obj.set_path(global_name, source_type, url)
             else:
-                msg = "What you choose is not a valid osp root"
+                msg = "What you choose is not a valid embarc root"
                 print_string(msg, level="warning")
                 sys.exit(1)
         if global_name:
             print_string("Set %s as global EMBARC_ROOT" % global_name)
             config = "EMBARC_ROOT"
-            osppath.set_global(config, global_name)
+            embarc_obj.set_global(config, global_name)
 
-    if not osppath.is_osp(input_root):
-        input_root = osppath.get_path(input_root)
-    osp_root = input_root if osppath.is_osp(input_root) else None
-    if not osp_root:
-        msg = "What you choose is not a valid osp root"
+    if not embarc_obj.is_embarc_root(input_root):
+        input_root = embarc_obj.get_path(input_root)
+    embarc_root = input_root if embarc_obj.is_embarc_root(input_root) else None
+    if not embarc_root:
+        msg = "What you choose is not a valid embarc root"
         print_string(msg, level="warning")
         sys.exit(1)
-    print_string("Current osp root is: " + osp_root)
-    return osp_root
+    print_string("Current embarc root is: " + embarc_root)
+    return embarc_root
 
 
 def build_config(args):
@@ -118,28 +114,28 @@ def build_config(args):
     config = collections.OrderedDict()
     application = args.application
 
-    osp_root = get_osp_root(args.osp_root)
-    support_board = osppath.supported_boards(osp_root)
+    embarc_root = get_embarc_root(args.embarc_root)
+    support_board = embarc_obj.supported_boards(embarc_root)
 
     if args.quick:
         config["APPL"] = application if application else str("helloworld")
-        board = osppath.get_global("BOARD")
+        board = embarc_obj.get_global("BOARD")
         if not board:
             board = str("emsk") if str("emsk") in support_board else support_board[0]
         config["BOARD"] = board
-        bd_ver = osppath.get_global("BD_VER")
+        bd_ver = embarc_obj.get_global("BD_VER")
         if not bd_ver:
-            bd_ver = osppath.supported_bd_versions(osp_root, board)[-1]
+            bd_ver = embarc_obj.supported_bd_versions(embarc_root, board)[-1]
         config["BD_VER"] = bd_ver
-        cur_core = osppath.get_global("CUR_CORE")
+        cur_core = embarc_obj.get_global("CUR_CORE")
         if not cur_core:
-            cur_core = osppath.supported_cores(osp_root, board, bd_ver)[0]
+            cur_core = embarc_obj.supported_cores(embarc_root, board, bd_ver)[0]
         config["CUR_CORE"] = cur_core
-        toolchain = osppath.get_global("TOOLCHAIN")
+        toolchain = embarc_obj.get_global("TOOLCHAIN")
         if not toolchain:
             toolchain = SUPPORT_TOOLCHAIN[0]
         config["TOOLCHAIN"] = toolchain
-        config["EMBARC_ROOT"] = os.path.abspath(osp_root)
+        config["EMBARC_ROOT"] = os.path.abspath(embarc_root)
         return config
 
     if not application:
@@ -171,7 +167,7 @@ def build_config(args):
         else:
             break
     config["BOARD"] = board
-    support_bd_ver = osppath.supported_bd_versions(osp_root, board)
+    support_bd_ver = embarc_obj.supported_bd_versions(embarc_root, board)
     print_string("{} support versions : {}".format(board, "  ".join(support_bd_ver)))
     while True:
         if not bd_ver:
@@ -184,7 +180,7 @@ def build_config(args):
             break
     config["BD_VER"] = bd_ver
 
-    support_core = osppath.supported_cores(osp_root, board, bd_ver)
+    support_core = embarc_obj.supported_cores(embarc_root, board, bd_ver)
     print_string("{} with versions {} support cores : {}".format(board, bd_ver, "  ".join(support_core)))
     while True:
         if not cur_core:
@@ -196,7 +192,7 @@ def build_config(args):
         else:
             break
     config["CUR_CORE"] = cur_core
-    support_toolchains = osppath.supported_toolchains(osp_root)
+    support_toolchains = embarc_obj.supported_toolchains(embarc_root)
     print_string("Support toolchains: {}".format("  ".join(support_toolchains)))
     while True:
         if not toolchain:
@@ -208,7 +204,7 @@ def build_config(args):
         else:
             break
     config["TOOLCHAIN"] = toolchain
-    config["EMBARC_ROOT"] = os.path.abspath(osp_root)
+    config["EMBARC_ROOT"] = os.path.abspath(embarc_root)
     return config
 
 
@@ -225,11 +221,9 @@ def setup(subparsers):
     subparser.add_argument(
         "--toolchain", choices=["mw", "gnu"], help="choose toolchain", metavar='')
     subparser.add_argument(
-        "--osp_root", help="set embARC OSP root path", metavar='')
+        "--embarc-root", help="set embARC root path", metavar='')
     subparser.add_argument(
-        "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2"], help="set olevel", metavar='')
-    subparser.add_argument(
-        '-m', '--middleware', action='store', default="common", help='choose a middleware', metavar='')
+        "-o", "--olevel", default="O2", choices=["Os", "O0", "O1", "O2"], help="set olevel", metavar='')
     subparser.add_argument(
         '--csrc', action='store', default=".", help='specify the path of application C source dirs', metavar='')
     subparser.add_argument(
@@ -237,9 +231,7 @@ def setup(subparsers):
     subparser.add_argument(
         '--include', action='store', default=".", help='specify the path of application include dirs', metavar='')
     subparser.add_argument(
-        '--defines', action='store', default=".", help='application defines', metavar='')
-    subparser.add_argument(
-        '--os', action='store', default="", help='choose operation system', metavar='')
+        '--defines', action='store', default=str(), help='application defines', metavar='')
     subparser.add_argument(
         '--library', action='store', default="", help='choose library', metavar='')
     subparser.add_argument(

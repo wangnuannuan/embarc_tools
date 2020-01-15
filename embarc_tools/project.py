@@ -3,10 +3,9 @@ import os
 import random
 from .utils import cd, getcwd, merge_recursive, uniqify, pquery
 from .exporter import Exporter
-from .osp import osp
 from .notify import (print_string)
 from .toolchain import gnu
-from .settings import BUILD_CONFIG_TEMPLATE, PYTHON_VERSION
+from .settings import BUILD_CONFIG_TEMPLATE, PYTHON_VERSION, embARC
 
 
 class Generator(object):
@@ -64,9 +63,9 @@ class Ide(object):
         else:
             openocd_cfg = "snps_" + common["board"]
 
-        osppath = osp.OSP()
+        embarc_obj = embARC()
 
-        # support_board = osppath.support_board(common["root"])
+        # support_board = embarc_obj.support_board(common["root"])
         openocd_cfg_dir = os.path.join(gnu_root_path,
                                        "share",
                                        "openocd",
@@ -101,7 +100,7 @@ class Ide(object):
         nsim_tcf = "/".join(["etc", "tcf", "templates", "em4_dmips.tcf"])
         nsim_tcf = "/".join([nsim_home, nsim_tcf])
         if common["board"] == "nsim":
-            nsim_tcf = osppath.get_tcf(common["root"], common["board"], common["bd_ver"], common["cur_core"]).replace("\\", "/")
+            nsim_tcf = embarc_obj.get_tcf(common["root"], common["board"], common["bd_ver"], common["cur_core"]).replace("\\", "/")
 
         self.ide["common"]["nsim"] = "/".join([nsim_home, "bin", "nsimdrv.exe"])
         self.ide["common"]["nsim_tcf"] = nsim_tcf
@@ -110,10 +109,10 @@ class Ide(object):
     def _get_project_conf_template(self):
         cproject_template = self._get_cproject_template()
 
-        osp_root = self.buildopts["EMBARC_ROOT"]
-        self.ide["common"]["root"] = osp_root
+        embarc_root = self.buildopts["EMBARC_ROOT"]
+        self.ide["common"]["root"] = embarc_root
         self.ide["common"]["folder"] = os.path.relpath(
-            getcwd(), osp_root
+            getcwd(), embarc_root
         ).replace("\\", "/").strip("../")
 
         make_tool = "make"
@@ -258,9 +257,9 @@ class Ide(object):
                 ]
                 virtual_folders.extend(link_list)
         link_files = list()
-        osp_root = self.ide["common"]["root"]
+        embarc_root = self.ide["common"]["root"]
         for folder in virtual_folders:
-            folder_path = os.path.join(osp_root, folder)
+            folder_path = os.path.join(embarc_root, folder)
             for file_name in os.listdir(folder_path):
                 file_path = os.path.join(folder_path, file_name)
                 if os.path.isfile(file_path):

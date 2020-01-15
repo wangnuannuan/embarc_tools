@@ -3,7 +3,7 @@ import os
 import sys
 from ..notify import print_string
 from ..utils import getcwd, read_json, cd
-from ..osp import osp
+from ..settings import embARC
 from ..builder import build
 
 help = "Get or set application config"
@@ -18,11 +18,10 @@ def run(args, remainder=None):
         sys.exit(1)
     app_path = args.path
     recordBuildConfig = dict()
-    osppath = osp.OSP()
-    osp_root = None
+    embarc_obj = embARC()
+    embarc_root = None
 
-    osppath = osp.OSP()
-    makefile = osppath.get_makefile(app_path)
+    makefile = embarc_obj.get_makefile(app_path)
     if makefile:
         embarc_config = os.path.join(app_path, "embarc_app.json")
         if os.path.exists(embarc_config):
@@ -38,10 +37,10 @@ def run(args, remainder=None):
             recordBuildConfig["TOOLCHAIN"] = args.toolchain
         if args.olevel:
             recordBuildConfig["OLEVEL"] = args.olevel
-        if args.osp_root:
-            osp_root, _ = osppath.check_osp(args.osp_root)
-            recordBuildConfig["EMBARC_ROOT"] = osp_root.replace("\\", "/")
-        builder = build.embARC_Builder(osp_root, recordBuildConfig)
+        if args.embarc_root:
+            embarc_root, _ = embarc_obj.check_embarc(args.embarc_root)
+            recordBuildConfig["EMBARC_ROOT"] = embarc_root.replace("\\", "/")
+        builder = build.embARC_Builder(embarc_root, recordBuildConfig)
         build_config_template = builder.get_build_template()
         with cd(app_path):
             builder.get_makefile_config(build_config_template)
@@ -64,7 +63,7 @@ def setup(subparsers):
     subparser.add_argument(
         "--toolchain", choices=["mw", "gnu"], help="set toolchain", metavar='')
     subparser.add_argument(
-        "--osp_root", help="set embARC OSP root path", metavar='')
+        "--embarc-root", help="set embARC root path", metavar='')
     subparser.add_argument(
         "-o", "--olevel", default="O3", choices=["Os", "O0", "O1", "O2", "O3"], help="set olevel", metavar='')
     subparser.set_defaults(func=run)

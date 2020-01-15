@@ -1,6 +1,6 @@
 from __future__ import print_function, division, unicode_literals
 from ...notify import print_string
-from ...osp import osp
+from ...settings import embARC
 
 help = "Set global build configuration."
 usage = ("\n    embarc config build_cfg BOARD <value>\n"
@@ -17,9 +17,9 @@ def run(args, remainder=None):
             print("usage: " + usage)
             return
         value = remainder[1]
-        osppath = osp.OSP()
+        embarc_obj = embARC()
         print_string("Set %s = %s as global setting" % (config, value))
-        osppath.set_global(config, value)
+        embarc_obj.set_global(config, value)
 
 
 def setup(subparsers):

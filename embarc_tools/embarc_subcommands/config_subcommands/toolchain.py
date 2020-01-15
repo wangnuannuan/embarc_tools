@@ -1,7 +1,6 @@
 from __future__ import print_function, division, unicode_literals
 from ...notify import print_string
-from ...settings import get_input, SUPPORT_TOOLCHAIN
-from ...osp import osp
+from ...settings import get_input, SUPPORT_TOOLCHAIN, embARC
 from ...toolchain import gnu, metaware
 help = "Get, set toolchain configuration options."
 usage = ("\n    embarc config toolchain [--version] [--download] gnu\n"
@@ -41,8 +40,8 @@ def run(args, remainder=None):
         if args.set:
             if args.set in SUPPORT_TOOLCHAIN:
                 print_string("Set %s as global TOOLCHAIN" % args.set)
-                osppath = osp.OSP()
-                osppath.set_global("TOOLCHAIN", args.set)
+                embarc_obj = embARC()
+                embarc_obj.set_global("TOOLCHAIN", args.set)
             else:
                 print_string("Only support GNU and MetaWare now")
         else:

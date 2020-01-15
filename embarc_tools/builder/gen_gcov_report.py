@@ -150,13 +150,13 @@ def generate_sum_report(root, app_path, obj_path):
         with cd("coverage"):
             generate_gcov_report(root, app_path, obj_path, "coverage_sum.html")
             generate_gcov_report(app_path, app_path, obj_path, "main.html")
-        osp_data = get_gcov_data("coverage/coverage_sum.html")
+        embarc_data = get_gcov_data("coverage/coverage_sum.html")
         main_data = get_gcov_data("coverage/main.html")
 
-        for i in range(len(osp_data)):
-            osp_data_item = osp_data[i]
+        for i in range(len(embarc_data)):
+            embarc_data_item = embarc_data[i]
             main_data_item = main_data[i]
-            for key, value in osp_data_item.items():
+            for key, value in embarc_data_item.items():
                 if key == "detail":
                     result["detail"] = value + main_data_item[key]
                 if key == "files":
@@ -397,7 +397,7 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         "--embarc-root",
-        required=True, help="Specify embARC_osp directory")
+        required=True, help="Specify embARC root")
     parser.add_argument(
         "--app-path", default=getcwd(),
         required=True, help="Specify the root path of project")

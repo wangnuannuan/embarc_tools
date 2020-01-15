@@ -1,24 +1,24 @@
 from __future__ import print_function, division, unicode_literals
 import os
 from ...notify import print_string
-from ...settings import EMBARC_OSP_URL
-from ...osp import osp
+from ...settings import EMBARC_BSP_URL
+from ...settings import embARC
 from ...utils import getcwd, read_json, unzip
 import git
 from git.util import RemoteProgress
 
 
-help = "Get, set or unset osp configuration."
+help = "Get, set or unset bsp configuration."
 
-usage = ("\n    embarc config osp --add <name> <url/path> [<dest>]\n"
-         "    embarc config osp --set <name>\n"
-         "    embarc config osp --rename <oldname> <newname>\n"
-         "    embarc config osp --remove <name>\n"
-         "    embarc config osp --list")
+usage = ("\n    embarc config bsp --add <name> <url/path> [<dest>]\n"
+         "    embarc config bsp --set <name>\n"
+         "    embarc config bsp --rename <oldname> <newname>\n"
+         "    embarc config bsp --remove <name>\n"
+         "    embarc config bsp --list")
 
 
 def run(args, remainder=None):
-    osppath = osp.OSP()
+    embarc_obj = embARC()
     num = [args.add, args.rename, args.remove]
     if num.count(False) + num.count(None) < 2:
         print("usage: " + usage)
@@ -39,9 +39,9 @@ def run(args, remainder=None):
             if os.path.exists(url) and os.path.isdir(url):
                 source_type = "local"
                 url = os.path.abspath(url)
-                msg = "Add this local (%s) to user profile osp.json" % (url)
+                msg = "Add this local (%s) to user profile embarc.json" % (url)
                 print_string(msg)
-                osppath.set_path(name, source_type, url)
+                embarc_obj.set_path(name, source_type, url)
                 args.list = True
 
             elif os.path.exists(url) and os.path.isfile(url):
@@ -54,17 +54,17 @@ def run(args, remainder=None):
                         print_string(msg, level="error")
                     else:
                         source_type = "zip"
-                        osppath.set_path(name, source_type, path, url)
-                        print_string("Add (%s) to user profile osp.json" % path)
+                        embarc_obj.set_path(name, source_type, path, url)
+                        print_string("Add (%s) to user profile embarc.json" % path)
                         args.list = True
-            elif url == EMBARC_OSP_URL:
+            elif url == EMBARC_BSP_URL:
                 if not os.path.exists(name):
                     path = dest if dest else getcwd()
                     print_string("Start clone {}".format(url))
                     git.Repo.clone_from(url, os.path.join(path, name), RemoteProgress())
                     source_type = "git"
-                    osppath.set_path(name, source_type, os.path.join(path, name), url)
-                    print_string("Add (%s) to user profile osp.json" % os.path.join(path, name))
+                    embarc_obj.set_path(name, source_type, os.path.join(path, name), url)
+                    print_string("Add (%s) to user profile bsp.json" % os.path.join(path, name))
                     args.list = True
                 else:
                     print_string("There is already a folder or file named '%s' under current path" % name)
@@ -79,21 +79,21 @@ def run(args, remainder=None):
             old = remainder[0]
             new = remainder[1]
             print_string("Start rename {} to {}".format(old, new))
-            osppath.rename(old, new)
+            embarc_obj.rename(old, new)
             args.list = True
     elif args.remove:
         name = args.remove
         print_string("Start remove {} ".format(name))
-        osppath.remove_path(name)
+        embarc_obj.remove_path(name)
         args.list = True
     elif args.set:
         name = args.set
         print_string("Set %s as global EMBARC_ROOT" % name)
-        if osppath.get_path(name):
+        if embarc_obj.get_path(name):
             config = "EMBARC_ROOT"
-            osppath.set_global(config, name)
+            embarc_obj.set_global(config, name)
         else:
-            print_string("This is not a valid osp path")
+            print_string("This is not a valid embarc root")
             args.list = True
     else:
         if remainder:
@@ -102,33 +102,33 @@ def run(args, remainder=None):
 
     if args.list:
         print_string("Current recored embARC source code")
-        current_paths = osppath.list_path()
-        makefile = osppath.get_makefile(getcwd())
+        current_paths = embarc_obj.list_path()
+        makefile = embarc_obj.get_makefile(getcwd())
         app_setting = dict()
-        current_osp = None
+        embarc_root = None
         if makefile:
             if os.path.exists("embarc_app.json"):
                 app_setting = read_json("embarc_app.json")
-                current_osp = app_setting.get("EMBARC_ROOT", False)
+                embarc_root = app_setting.get("EMBARC_ROOT", False)
             else:
-                _, app_setting = osppath.get_makefile_config(app_setting)
-                current_osp = app_setting.get("EMBARC_ROOT", False)
+                _, app_setting = embarc_obj.get_makefile_config(app_setting)
+                embarc_root = app_setting.get("EMBARC_ROOT", False)
         if current_paths:
-            osppath.list_path(show=True, current=current_osp)
+            embarc_obj.list_path(show=True, current=embarc_root)
 
 
 def setup(subparsers):
-    subparser = subparsers.add_parser('osp', help=help)
+    subparser = subparsers.add_parser('embarc-root', help=help)
     subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(
-        "--add", action='store_true', help='fetch the remote source code and add it to osp.json')
+        "--add", action='store_true', help='fetch the remote source code and add it to embarc.json')
     mutualex_group.add_argument(
-        '-s', '--set', help="set a global EMBARC_ROOT, make sure you have added it to osp.json", metavar='')
+        '-s', '--set', help="set a global EMBARC_ROOT, make sure you have added it to embarc.json", metavar='')
     mutualex_group.add_argument(
-        "--rename", action='store_true', help="rename osp source code")
+        "--rename", action='store_true', help="rename embarc source code")
     mutualex_group.add_argument(
-        '-rm', '--remove', help="remove the specified osp source code", metavar='')
+        '-rm', '--remove', help="remove the specified embarc source code", metavar='')
     subparser.add_argument(
-        '-l', '--list', action='store_true', help="show all recored embARC OSP source code")
+        '-l', '--list', action='store_true', help="show all recored embARC embarc source code")
     subparser.set_defaults(func=run)

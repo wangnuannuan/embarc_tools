@@ -5,21 +5,20 @@ import time
 import collections
 from prettytable import PrettyTable
 from elftools.elf.elffile import ELFFile
-from ..settings import BUILD_CONFIG_TEMPLATE, MAKEFILENAMES
+from ..settings import BUILD_CONFIG_TEMPLATE, MAKEFILENAMES, embARC
 from ..utils import mkdir, delete_dir_files, cd, generate_json, pquery
 from ..notify import (print_string, print_table)
-from ..osp import osp
 from ..builder import secureshield
 
 
 class embARC_Builder(object):
-    def __init__(self, osproot=None, buildopts=None, outdir=None, config_file="embarc_app.json"):
+    def __init__(self, embarc_root=None, buildopts=None, outdir=None, config_file="embarc_app.json"):
         self.buildopts = dict()
         make_options = ' '
-        if osproot is not None and os.path.isdir(osproot):
-            self.osproot = os.path.realpath(osproot)
+        if embarc_root is not None and os.path.isdir(embarc_root):
+            self.embarc_root = os.path.realpath(embarc_root)
         else:
-            self.osproot = None
+            self.embarc_root = None
         if outdir is not None:
             self.outdir = os.path.realpath(outdir)
             make_options += 'OUT_DIR_ROOT=' + str(self.outdir) + ' '
@@ -293,34 +292,34 @@ class embARC_Builder(object):
         return build_status
 
     def get_makefile_config(self, build_template=None):
-        ospclass = osp.OSP()
+        embarc_obj = embARC()
         build_template["APPL"] = self.buildopts.get("APPL", False)
         build_template["BOARD"] = self.buildopts.get("BOARD", False)
         build_template["BD_VER"] = self.buildopts.get("BD_VER", False)
         build_template["CUR_CORE"] = self.buildopts.get("CUR_CORE", False)
         build_template["TOOLCHAIN"] = self.buildopts.get("TOOLCHAIN", False)
         build_template["OLEVEL"] = self.buildopts.get("OLEVEL", False)
-        osp_root = self.buildopts.get("EMBARC_ROOT", False)
+        embarc_root = self.buildopts.get("EMBARC_ROOT", False)
 
         if not all(build_template.values()):
             default_makefile_config = dict()
-            _, default_makefile_config = ospclass.get_makefile_config(default_makefile_config)
-            if not osp_root:
-                osp_root = default_makefile_config.get("EMBARC_ROOT")
+            _, default_makefile_config = embarc_obj.get_makefile_config(default_makefile_config)
+            if not embarc_root:
+                embarc_root = default_makefile_config.get("EMBARC_ROOT")
             for key, value in build_template.items():
                 if not value:
                     build_template[key] = default_makefile_config.get(key, False)
             self.buildopts.update(build_template)
 
-        osp_root, _ = ospclass.check_osp(osp_root)
-        self.buildopts["EMBARC_ROOT"] = osp_root
-        build_template["EMBARC_ROOT"] = osp_root
+        embarc_root, _ = embarc_obj.check_embarc(embarc_root)
+        self.buildopts["EMBARC_ROOT"] = embarc_root
+        build_template["EMBARC_ROOT"] = embarc_root
 
         if not build_template["BOARD"]:
             build_template["BOARD"] = "emsk"
 
         if not build_template["BD_VER"]:
-            board_mk = os.path.join(osp_root, "board", build_template["BOARD"], build_template["BOARD"] + ".mk")
+            board_mk = os.path.join(embarc_root, "board", build_template["BOARD"], build_template["BOARD"] + ".mk")
             if os.path.exists(board_mk):
                 with open(board_mk, "r") as fp:
                     for line in fp.readlines():
@@ -328,8 +327,8 @@ class embARC_Builder(object):
                             build_template["BD_VER"] = line.split("=", 1)[1].strip()
                             break
         if not build_template["CUR_CORE"]:
-            build_template["CUR_CORE"] = ospclass.supported_cores(
-                osp_root,
+            build_template["CUR_CORE"] = embarc_obj.supported_cores(
+                embarc_root,
                 build_template["BOARD"],
                 build_template["BD_VER"]
             )[0]
@@ -348,7 +347,7 @@ class embARC_Builder(object):
             table_content.append(value)
         msg = [table_head, [table_content]]
         print_table(msg)
-        self.osproot = osp_root
+        self.embarc_root = embarc_root
         return build_template
 
     def get_build_template(self):

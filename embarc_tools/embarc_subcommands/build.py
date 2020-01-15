@@ -11,7 +11,6 @@ description = ("Compile code using toolchain.\n"
 
 
 def run(args, remainder=None):
-    osproot = None
     app_path = args.path
     recordBuildConfig = dict()
     app_path = os.path.abspath(app_path)
@@ -54,7 +53,7 @@ def run(args, remainder=None):
             sys.exit(1)
         else:
             recordBuildConfig["EN_COVERAGE"] = 1
-    builder = build.embARC_Builder(osproot, recordBuildConfig, args.outdir)
+    builder = build.embARC_Builder(None, recordBuildConfig, args.outdir)
     if args.export:
         builder.get_build_cmd(app_path, target=None, parallel=parallel, silent=False)
         with cd(app_path):
