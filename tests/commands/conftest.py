@@ -3,8 +3,7 @@ import os
 import subprocess
 import errno
 import pytest
-from embarc_tools.settings import EMBARC_OSP_URL, CURRENT_PLATFORM
-from embarc_tools.osp import osp
+from embarc_tools.settings import EMBARC_BSP_URL, CURRENT_PLATFORM
 from embarc_tools.utils import getcwd, mkdir
 from embarc_tools.toolchain import gnu
 
@@ -34,8 +33,8 @@ def get_osp():
     toolchain_root = os.environ.get("TOOLCHAIN_CACHE_FOLDER")
     store_gnu_toolchain(toolchain_root)
     current_path = getcwd()
-    runcmd(["config", "osp", "--add", "new_osp", EMBARC_OSP_URL])
-    runcmd(["config", "osp", "--set", "new_osp"])
+    runcmd(["config", "bsp", "--add", "new_bsp", EMBARC_BSP_URL])
+    runcmd(["config", "bsp", "--set", "new_bsp"])
 
     app_path = os.path.join(current_path, "helloworld")
     if not os.path.exists(app_path):
