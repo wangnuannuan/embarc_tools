@@ -12,7 +12,7 @@ PYTHON_VERSION = platform.python_version()
 MAKEFILENAMES = ['Makefile', 'makefile', 'GNUMakefile']
 
 EMBARC_BSP_URL = "https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_bsp.git"
-EMBARC_SUB_DIRS = ["arc", "board", "device", "include", "library"]
+EMBARC_SUB_DIRS = ["arc", "board", "device", "library"]
 OLEVEL = ["Os", "O0", "O1", "O2", "O3"]
 GNU_PATH = ""
 MW_PATH = ""

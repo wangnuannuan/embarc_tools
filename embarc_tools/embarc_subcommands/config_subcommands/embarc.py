@@ -8,13 +8,13 @@ import git
 from git.util import RemoteProgress
 
 
-help = "Get, set or unset bsp configuration."
+help = "Get, set or unset embarc-root configuration."
 
-usage = ("\n    embarc config bsp --add <name> <url/path> [<dest>]\n"
-         "    embarc config bsp --set <name>\n"
-         "    embarc config bsp --rename <oldname> <newname>\n"
-         "    embarc config bsp --remove <name>\n"
-         "    embarc config bsp --list")
+usage = ("\n    embarc config embarc-root --add <name> <url/path> [<dest>]\n"
+         "    embarc config embarc-root --set <name>\n"
+         "    embarc config embarc-root --rename <oldname> <newname>\n"
+         "    embarc config embarc-root --remove <name>\n"
+         "    embarc config embarc-root --list")
 
 
 def run(args, remainder=None):
@@ -64,7 +64,7 @@ def run(args, remainder=None):
                     git.Repo.clone_from(url, os.path.join(path, name), RemoteProgress())
                     source_type = "git"
                     embarc_obj.set_path(name, source_type, os.path.join(path, name), url)
-                    print_string("Add (%s) to user profile bsp.json" % os.path.join(path, name))
+                    print_string("Add (%s) to user profile embarc.json" % os.path.join(path, name))
                     args.list = True
                 else:
                     print_string("There is already a folder or file named '%s' under current path" % name)
@@ -118,7 +118,7 @@ def run(args, remainder=None):
 
 
 def setup(subparsers):
-    subparser = subparsers.add_parser('bsp', help=help)
+    subparser = subparsers.add_parser('embarc-root', help=help)
     subparser.usage = usage
     mutualex_group = subparser.add_mutually_exclusive_group()
     mutualex_group.add_argument(

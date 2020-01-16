@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser(
         prog='embarc',
         description='''
-            Command-line tool for embARC BSP - https://embarc.org/embarc_bsp\n
+            Command-line tool for embARC embedded development \n
             version %s\n\nUse \"embarc <command> -h|--help\" for detailed help.\n
             Online manual and guide available at https://github.com/foss-for-synopsys-dwc-arc-processors/embarc_tools'''
              % ver,
