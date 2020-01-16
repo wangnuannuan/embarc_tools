@@ -29,7 +29,7 @@ def runcmd(command, **kwargs):
         raise ProcessException(proc.returncode, command[0], ' '.join(command), getcwd())
 
 @pytest.fixture()
-def get_osp():
+def get_bsp():
     toolchain_root = os.environ.get("TOOLCHAIN_CACHE_FOLDER")
     store_gnu_toolchain(toolchain_root)
     current_path = getcwd()

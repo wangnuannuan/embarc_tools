@@ -14,7 +14,7 @@ The basic workflow for embARC CLI is to:
 $ embarc -h
 usage: embarc [-h] [--version]             ...
 
-Command-line tool for embARC OSP - https://embarc.org/embarc_osp
+Command-line tool for embARC BSP - https://embarc.org/embarc_bsp
 version 1.0.4
 
 Use "embarc <command> -h|--help" for detailed help.
@@ -61,12 +61,12 @@ $ pip uninstall embarc-cli
 ```
 ### Before you begin
 embARC CLI uses the user directory `Users/xxx/.embarc_cli` to save global settings. When you use embARC CLI, it will create two files:
-1. `Users/xxx/.embarc_cli/osp.json` including information about root paths of embARC OSP source code.
+1. `Users/xxx/.embarc_cli/embarc.json` including information about root paths of embARC source code.
 2. `Users/xxx/.embarc_cli/global_config.json` including current global settings: `EMBARC_ROOT`,`TOOLCHAIN` and build configuration `BOARD`, `BD_VER` and `CUR_CORE`.
 ### Create a new application
 embARC CLI can create applications based on embARC Open Software Platform. A detailed command-specific help is available by using `embarc new --help`.
 
-When you create a new application, embARC CLI automatically imports the OSP from global settings if you haven't specify a OSP root path by `--osp_root`, if there is no `EMBARC_ROOT` in global settings, you need to input manually.
+When you create a new application, embARC CLI automatically imports the BSP from global settings if you haven't specify a BSP root path by `--bsp_root`, if there is no `EMBARC_ROOT` in global settings, you need to input manually.
 
 The arguments for `build` are:
 
@@ -80,10 +80,10 @@ The arguments for `build` are:
 - `-g` or `--export` to generate Eclipse IDE project file for your application.
 - `--app_config` to specify application configuration with a json file.
 
-Let's create an application named `helloworld` for embARC OSP:
+Let's create an application named `helloworld` for embARC BSP:
 ```
 $ embarc new helloworld
-[embARC] Current osp root is: C:/Users/jingru/Documents/embarc/embarc_osp
+[embARC] Current embarc root is: C:/Users/jingru/Documents/embarc/embarc_bsp
 [embARC] Support boards : axs  emsk  hsdk  iotdk  nsim
 [embARC] Choose board: emsk
 [embARC] emsk support versions : 11  22  23
@@ -96,7 +96,7 @@ $ embarc new helloworld
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 | APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_ROOT                             | OLEVEL |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| helloworld | emsk  | 11     | arcem4   | gnu       | C:\Users\jingru\Documents\embarc\embarc_osp | O3     |
+| helloworld | emsk  | 11     | arcem4   | gnu       | C:\Users\jingru\Documents\embarc\embarc_bsp | O3     |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 [embARC] Start to generate makefile and main.c
 [embARC] Finish generate makefile and main.c, and they are in C:\Users\jingru\Documents\embarc\testcli\helloworld
@@ -104,17 +104,17 @@ $ embarc new helloworld
 If you want to create an application quickly, you can use `--quick`, it can create application with current global settings.
 ```
 $ embarc new --quick
-[embARC] Current osp root is: C:/Users/jingru/Documents/embarc/embarc_osp
+[embARC] Current embarc root is: C:/Users/jingru/Documents/embarc/embarc_bsp
 [embARC] Current configuration
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 | APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | EMBARC_ROOT                             | OLEVEL |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
-| helloworld | emsk  | 23     | arcem7d  | gnu       | C:\Users\jingru\Documents\embarc\embarc_osp | O3     |
+| helloworld | emsk  | 23     | arcem7d  | gnu       | C:\Users\jingru\Documents\embarc\embarc_bsp | O3     |
 +------------+-------+--------+----------+-----------+---------------------------------------------+--------+
 [embARC] Start to generate makefile and main.c
 [embARC] Finish generate makefile and main.c, and they are in C:\Users\jingru\Documents\embarc\testcli\helloworld\helloworld
 ```
-<span class="tips">**Tip:** If you haven't set a global `EMBARC_ROOT`, it will raise `Can't get osp root from global setting`.
+<span class="tips">**Tip:** If you haven't set a global `EMBARC_ROOT`, it will raise `Can't get bsp root from global setting`.
 When you create application with `embarc new`, it will generate a file `embarc_app.json` recording the parameters:
 ```
 {
@@ -123,7 +123,7 @@ When you create application with `embarc new`, it will generate a file `embarc_a
     "BD_VER": "23", 
     "CUR_CORE": "arcem7d", 
     "TOOLCHAIN": "gnu", 
-    "EMBARC_ROOT": "C:/Users/jingru/Documents/embarc/embarc_osp", 
+    "EMBARC_ROOT": "C:/Users/jingru/Documents/embarc/embarc_bsp", 
     "OLEVEL": "O3"
 }
 ```
@@ -138,7 +138,7 @@ $ embarc build
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 | APPL       | BOARD | BD_VER | CUR_CORE | TOOLCHAIN | OLEVEL | EMBARC_ROOT                             |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
-| helloworld | emsk  | 23     | arcem7d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_osp |
+| helloworld | emsk  | 23     | arcem7d  | gnu       | O3     | C:/Users/jingru/Documents/embarc/embarc_bsp |
 +------------+-------+--------+----------+-----------+--------+---------------------------------------------+
 [embARC] Build command: make BD_VER=23 TOOLCHAIN=gnu OLEVEL=O3 APPL=helloworld BOARD=emsk CUR_CORE=arcem7d all
 [embARC] Start to build application

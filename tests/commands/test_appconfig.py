@@ -6,7 +6,7 @@ from .conftest import runcmd
 from embarc_tools.utils import cd, getcwd
 
 
-def test_appconfig_commands(tmpdir, get_osp):
+def test_appconfig_commands(tmpdir, get_bsp):
     testdir = tmpdir.mkdir("test")
     with cd(testdir.strpath):
         runcmd(["new", "--quick"])

@@ -3,7 +3,7 @@ import pytest
 from .conftest import runcmd
 from embarc_tools.utils import cd
 
-def test_new_commands(tmpdir, get_osp):
+def test_new_commands(tmpdir, get_bsp):
 	testdir = tmpdir.mkdir("test")
 	with cd(testdir.strpath):
 		runcmd([ "new", "--board", "emsk", "--bd_ver", "22", "--core", "arcem7d", "--toolchain", "gnu", "hello"])

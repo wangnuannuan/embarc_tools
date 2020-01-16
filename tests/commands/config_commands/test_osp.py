@@ -5,8 +5,8 @@ import subprocess
 from ..conftest import runcmd
 
 
-def test_osp_commands(get_osp):
-    runcmd(["config", "osp", "--list"])
-    runcmd(["config", "osp", "--rename", "new_osp", "rename"])
-    runcmd(["config", "osp", "--list"])
-    runcmd(["config", "osp", "--rename", "rename", "new_osp"])
+def test_bsp_commands(get_bsp):
+    runcmd(["config", "bsp", "--list"])
+    runcmd(["config", "bsp", "--rename", "new_bsp", "rename"])
+    runcmd(["config", "bsp", "--list"])
+    runcmd(["config", "bsp", "--rename", "rename", "new_bsp"])
