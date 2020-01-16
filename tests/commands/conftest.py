@@ -33,8 +33,8 @@ def get_bsp():
     toolchain_root = os.environ.get("TOOLCHAIN_CACHE_FOLDER")
     store_gnu_toolchain(toolchain_root)
     current_path = getcwd()
-    runcmd(["config", "bsp", "--add", "new_bsp", EMBARC_BSP_URL])
-    runcmd(["config", "bsp", "--set", "new_bsp"])
+    runcmd(["config", "embarc-root", "--add", "new_bsp", EMBARC_BSP_URL])
+    runcmd(["config", "embarc-root", "--set", "new_bsp"])
 
     app_path = os.path.join(current_path, "helloworld")
     if not os.path.exists(app_path):
